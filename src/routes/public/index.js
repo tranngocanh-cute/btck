@@ -9,5 +9,4 @@ router.get("/product/search/:keySearch?", asyncHandler(productController.searchP
 router.get("/product/findOne/:product_id", asyncHandler(productController.findOneProducts));
 router.get("/product/published", asyncHandler(productController.getAllPublishedProducts));
 router.get("/product/hot", asyncHandler(productController.getHotProducts));
-
 module.exports = router; 

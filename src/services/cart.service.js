@@ -7,6 +7,7 @@ const { product } = require('../models/product.model')
 const { checkProductStock, reduceProductStock } = require('../models/repositories/inventory.repo')
 const { sendEmail, generateOrderConfirmationEmail } = require('../helpers/email.helper')
 const shopModel = require('../models/shop.model') // Thêm import để lấy thông tin người dùng
+const { createOrder } = require('../models/repositories/order.repo')
 
 class CartService {
     // Thêm sản phẩm vào giỏ hàng
@@ -283,7 +284,8 @@ class CartService {
     static async checkout({ 
         userId, 
         productIds = [],
-        customerInfo = {} // Thông tin khách hàng bổ sung
+        customerInfo = {}, // Thông tin khách hàng bổ sung
+        paymentMethod = 'cod' // Mặc định là thanh toán khi nhận hàng
     }) {
         // Lấy giỏ hàng hiện tại
         const userCart = await cartModel.findOne({ userId });
@@ -361,13 +363,23 @@ class CartService {
             return total + (item.price * item.quantity);
         }, 0);
 
+        // Tạo đơn hàng mới
+        const newOrder = await createOrder({
+            userId,
+            products: productsToCheckout,
+            totalAmount,
+            shippingInfo,
+            paymentMethod
+        });
+
         // Gửi email xác nhận đơn hàng
         if (shippingInfo.email) {
             const emailTemplate = generateOrderConfirmationEmail({
                 customerName: shippingInfo.name,
                 orderItems: productsToCheckout,
                 totalAmount: totalAmount,
-                shippingInfo
+                shippingInfo,
+                orderId: newOrder._id
             });
 
             // Gửi email
@@ -399,6 +411,7 @@ class CartService {
             success: true, 
             message: 'Checkout completed successfully',
             orderInfo: {
+                orderId: newOrder._id,
                 totalAmount,
                 itemCount: productsToCheckout.length,
                 shippingInfo
