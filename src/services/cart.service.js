@@ -8,6 +8,7 @@ const { checkProductStock, reduceProductStock } = require('../models/repositorie
 const { sendEmail, generateOrderConfirmationEmail } = require('../helpers/email.helper')
 const shopModel = require('../models/shop.model') // Thêm import để lấy thông tin người dùng
 const { createOrder } = require('../models/repositories/order.repo')
+const { debugCheckout, debugEmail } = require('../helpers/checkout-debug')
 
 class CartService {
     // Thêm sản phẩm vào giỏ hàng
@@ -310,6 +311,9 @@ class CartService {
             note: customerInfo.note || ''
         };
 
+        // DEBUG: Kiểm tra thông tin giao hàng
+        debugCheckout(shippingInfo);
+
         // Xác định sản phẩm cần thanh toán
         let productsToCheckout = [];
         
@@ -373,23 +377,31 @@ class CartService {
         });
 
         // Gửi email xác nhận đơn hàng
+        console.log("Kiểm tra email trước khi gửi:", shippingInfo.email);
         if (shippingInfo.email) {
-            const emailTemplate = generateOrderConfirmationEmail({
-                customerName: shippingInfo.name,
-                orderItems: productsToCheckout,
-                totalAmount: totalAmount,
-                shippingInfo,
-                orderId: newOrder._id
-            });
+            try {
+                console.log("Bắt đầu quá trình gửi email...");
+                const emailTemplate = generateOrderConfirmationEmail({
+                    customerName: shippingInfo.name,
+                    orderItems: productsToCheckout,
+                    totalAmount: totalAmount,
+                    shippingInfo,
+                    orderId: newOrder._id
+                });
 
-            // Gửi email
-            const emailResult = await sendEmail({
-                to: shippingInfo.email,
-                subject: 'Xác nhận đơn hàng của bạn',
-                html: emailTemplate
-            });
+                // Sử dụng hàm debug thay vì hàm gửi email chính
+                const emailResult = await debugEmail({
+                    to: shippingInfo.email,
+                    subject: 'Xác nhận đơn hàng của bạn',
+                    html: emailTemplate
+                });
 
-            console.log('Email sending result:', emailResult);
+                console.log('Email sending result:', emailResult);
+            } catch (error) {
+                console.error("LỖI khi gửi email:", error);
+            }
+        } else {
+            console.log("Không tìm thấy email trong thông tin giao hàng!");
         }
 
         // Xóa sản phẩm đã thanh toán khỏi giỏ hàng

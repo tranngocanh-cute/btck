@@ -1,7 +1,7 @@
 "use strict";
-const shopModel = require("../models/shop.model");
-const bcrypt = require("bcrypt");
-const crypto = require("crypto");
+const shopModel = require("../models/shop.model");  
+const bcrypt = require("bcrypt"); // passw
+const crypto = require("crypto"); // public key -private key 
 const KeyTokenService = require("../services/keytoken.service");
 const { createTokenPair, verifyJWT } = require("../auth/authUtilts");
 const { getInfoData } = require("../utils");
@@ -17,43 +17,43 @@ const RoleShop = {
 class AccessService {
   //refresh token
 
-  static refreshToken = async ({ keyStore, user, refreshToken }) => {
-    const { userId, email } = user;
-    if (keyStore.refreshTokenUsed.includes(refreshToken)) {
-      await KeyTokenService.deleteKeyById(userId);
-      throw new BadRequestError("Token đã được sử dụng login lai di");
-    }
+    static refreshToken = async ({ keyStore, user, refreshToken }) => {
+      const { userId, email } = user;
+      if (keyStore.refreshTokenUsed.includes(refreshToken)) {
+        await KeyTokenService.deleteKeyById(userId);
+        throw new BadRequestError("Token đã được sử dụng login lai di");
+      }
 
-    if (keyStore.refreshToken !== refreshToken) {
-      throw new BadRequestError("Shop chua dang ky");
-    }
-    const foundShop = await findByEmail({ email });
-    if (!foundShop) throw new BadRequestError("Email không tồn tại");
-    const tokens = await createTokenPair(
-      { userId, email },
-      keyStore.publicKey,
-      keyStore.privateKey
-    );
-    await keyStore.updateOne({
-      $set: {
-        refreshToken: tokens.refreshToken,
-      },
-      $addToSet: {
-        refreshTokenUsed: refreshToken,
-      },
-    });
-    return {
-      user: getInfoData({
-        fileds: ["_id", "name", "email", "roles"],
-        object: foundShop,
-      }),
-      tokens,
+      if (keyStore.refreshToken !== refreshToken) {
+        throw new BadRequestError("Shop chua dang ky");
+      }
+      const foundShop = await findByEmail({ email });
+      if (!foundShop) throw new BadRequestError("Email không tồn tại");
+      const tokens = await createTokenPair(
+        { userId, email },
+        keyStore.publicKey,
+        keyStore.privateKey
+      );
+      await keyStore.updateOne({
+        $set: {
+          refreshToken: tokens.refreshToken,
+        },
+        $addToSet: {
+          refreshTokenUsed: refreshToken,
+        },
+      });
+      return {
+        user: getInfoData({
+          fileds: ["_id", "name", "email", "roles"],
+          object: foundShop,
+        }),
+        tokens,
+      };
     };
-  };
   // dang xuat
 
   static logout = async (keyStore) => {
-    const delKey = await KeyTokenService.removeKeyById(keyStore._id);
+    const delKey = await KeyTokenService.removeKeyById(keyStore._id);// xóa luôn cái keystore chứa Pu và Pri k
     return delKey;
   };
 
